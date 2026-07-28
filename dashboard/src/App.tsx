@@ -2,8 +2,8 @@
  * App.tsx — Main Dashboard Orchestrator
  *
  * Manages state for filters, triggers queries, renders charts.
- * UI-only changes: layout, hierarchy, dark mode, skeleton states.
- * Query/data logic untouched.
+ * Multi-select regions, drill-down breadcrumb, per-chart states.
+ * Query/data logic in lib/queries.ts — untouched.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -20,6 +20,9 @@ import GaaComparisonChart from './components/GaaComparisonChart';
 import DrilldownChart from './components/DrilldownChart';
 import ThemeToggle from './components/ThemeToggle';
 import Skeleton from './components/Skeleton';
+import EmptyState from './components/EmptyState';
+
+const DEFAULT_REGIONS = ['National Capital Region (NCR)'];
 
 export default function App() {
   const { ready, loading, error } = useDuckDB();
@@ -28,7 +31,7 @@ export default function App() {
   const [years, setYears] = useState<number[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<number[]>([2024]);
-  const [selectedRegion, setSelectedRegion] = useState('National Capital Region (NCR)');
+  const [selectedRegions, setSelectedRegions] = useState<string[]>(DEFAULT_REGIONS);
   const [aggMode, setAggMode] = useState<AggMode>('total');
 
   // Chart data
@@ -36,6 +39,7 @@ export default function App() {
   const [trendData, setTrendData] = useState<MonthlyTrend[]>([]);
   const [gaaData, setGaaData] = useState<GaaComparison[]>([]);
   const [chartsLoading, setChartsLoading] = useState(true);
+  const [trendLoading, setTrendLoading] = useState(true);
 
   // Drill-down state
   const [drillRegion, setDrillRegion] = useState<string | null>(null);
@@ -65,12 +69,18 @@ export default function App() {
 
   useEffect(() => { refreshRegionCharts(); }, [refreshRegionCharts]);
 
-  // Refresh trend chart when region or years change
+  // Refresh trend chart — use first selected region (or top region from data)
+  const trendRegion = selectedRegions.length > 0
+    ? selectedRegions[0]
+    : (regionData[0]?.region || 'National Capital Region (NCR)');
+
   const refreshTrend = useCallback(async () => {
     if (!ready || selectedYears.length === 0) return;
-    const trend = await getMonthlyTrend(selectedRegion, selectedYears);
+    setTrendLoading(true);
+    const trend = await getMonthlyTrend(trendRegion, selectedYears);
     setTrendData(trend);
-  }, [ready, selectedRegion, selectedYears]);
+    setTrendLoading(false);
+  }, [ready, trendRegion, selectedYears]);
 
   useEffect(() => { refreshTrend(); }, [refreshTrend]);
 
@@ -83,6 +93,15 @@ export default function App() {
   }, [ready, selectedYears]);
 
   const handleDrillBack = () => {
+    setDrillRegion(null);
+    setDrillData([]);
+  };
+
+  // Reset all filters
+  const handleReset = () => {
+    setSelectedYears([years[years.length - 1] || 2024]);
+    setSelectedRegions(DEFAULT_REGIONS);
+    setAggMode('total');
     setDrillRegion(null);
     setDrillData([]);
   };
@@ -109,9 +128,12 @@ export default function App() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--color-surface)]">
-        <div className="max-w-sm p-6 space-y-2">
-          <p className="text-sm font-medium text-red-500">Failed to initialize</p>
-          <p className="text-xs text-[var(--color-text-tertiary)]">{error}</p>
+        <div className="max-w-sm p-6 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 space-y-2">
+          <p className="text-sm font-semibold text-red-600 dark:text-red-400">Failed to initialize DuckDB-WASM</p>
+          <p className="text-xs text-red-500 dark:text-red-400/70">{error}</p>
+          <p className="text-xs text-[var(--color-text-tertiary)] mt-3">
+            Check browser console and ensure the Parquet file is in <code className="font-mono">public/</code>.
+          </p>
         </div>
       </div>
     );
@@ -168,16 +190,17 @@ export default function App() {
         )}
 
         {/* ── Filters ───────────────────────────────────────────────────────── */}
-        <div className="mb-10 py-3 px-4 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-border)] shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="mb-10 py-3 px-4 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-border)] shadow-[0_1px_2px_rgba(0,0,0,0.03)] relative">
           <Filters
             years={years}
             regions={regions}
             selectedYears={selectedYears}
-            selectedRegion={selectedRegion}
+            selectedRegions={selectedRegions}
             aggMode={aggMode}
             onYearsChange={setSelectedYears}
-            onRegionChange={setSelectedRegion}
+            onRegionsChange={setSelectedRegions}
             onAggModeChange={setAggMode}
+            onReset={handleReset}
           />
         </div>
 
@@ -186,15 +209,16 @@ export default function App() {
           {drillRegion ? (
             <div>
               {/* Breadcrumb */}
-              <nav className="flex items-center gap-2 mb-4 text-sm" aria-label="Breadcrumb">
+              <nav className="flex items-center gap-2 mb-4 text-sm bg-[var(--color-surface-sunken)] px-4 py-2.5 rounded-lg" aria-label="Breadcrumb">
+                <span className="text-[var(--color-text-tertiary)]">Viewing:</span>
+                <span className="font-medium text-[var(--color-text-primary)]">{drillRegion}</span>
+                <span className="text-[var(--color-text-tertiary)]">—</span>
                 <button
                   onClick={handleDrillBack}
                   className="text-[var(--color-accent)] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] rounded"
                 >
-                  All Regions
+                  ← All regions
                 </button>
-                <span className="text-[var(--color-text-tertiary)]">/</span>
-                <span className="text-[var(--color-text-secondary)]">{drillRegion}</span>
               </nav>
               <DrilldownChart data={drillData} region={drillRegion} onBack={handleDrillBack} />
             </div>
@@ -207,7 +231,9 @@ export default function App() {
                 </span>
               </h2>
               {chartsLoading ? (
-                <Skeleton height="500px" />
+                <Skeleton height="540px" />
+              ) : regionData.length === 0 ? (
+                <EmptyState message="No collection data for the selected years." />
               ) : (
                 <RegionBarChart data={regionData} onRegionClick={handleRegionClick} />
               )}
@@ -219,23 +245,33 @@ export default function App() {
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12" aria-label="Trend and comparison charts">
           {/* Monthly Trend */}
           <div>
-            <h2 className="text-base font-medium text-[var(--color-text-secondary)] mb-4">
+            <h2 className="text-base font-medium text-[var(--color-text-secondary)] mb-1">
               Monthly Trend
             </h2>
-            {trendData.length === 0 ? (
-              <Skeleton height="350px" />
+            <p className="text-xs text-[var(--color-text-tertiary)] mb-4">
+              Year-over-year for {trendRegion.replace(/Region\s+[\w-]+\s+\((.+)\)/, '$1').replace(/National Capital Region \(NCR\)/, 'NCR')}
+            </p>
+            {trendLoading ? (
+              <Skeleton height="320px" />
+            ) : trendData.length === 0 ? (
+              <EmptyState message="No trend data available for this region." />
             ) : (
-              <MonthlyTrendChart data={trendData} region={selectedRegion} />
+              <MonthlyTrendChart data={trendData} region={trendRegion} />
             )}
           </div>
 
           {/* GAA vs BIR */}
           <div>
-            <h2 className="text-base font-medium text-[var(--color-text-secondary)] mb-4">
+            <h2 className="text-base font-medium text-[var(--color-text-secondary)] mb-1">
               GAA Budget vs Collection
             </h2>
+            <p className="text-xs text-[var(--color-text-tertiary)] mb-4">
+              {selectedYears[selectedYears.length - 1]} — General Appropriations Act allocation vs actual BIR revenue
+            </p>
             {chartsLoading ? (
-              <Skeleton height="400px" />
+              <Skeleton height="380px" />
+            ) : gaaData.length === 0 ? (
+              <EmptyState message="No GAA comparison data for this year." />
             ) : (
               <GaaComparisonChart data={gaaData} year={selectedYears[selectedYears.length - 1]} />
             )}
@@ -245,16 +281,16 @@ export default function App() {
         {/* ── Footer ────────────────────────────────────────────────────────── */}
         <footer className="mt-16 pt-6 border-t border-[var(--color-border)]">
           <p className="text-xs text-[var(--color-text-tertiary)]">
-            Data:{' '}
+            Source: Bureau of Internal Revenue (BIR), General Appropriations Act (GAA) — 2020–2024 •{' '}
             <a
               href="https://data.bettergov.ph/datasets/20"
               className="hover:text-[var(--color-text-secondary)] underline underline-offset-2 transition-data"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Bureau of Internal Revenue
+              data.bettergov.ph
             </a>
-            {' '}(CC0 1.0) — Built with React, DuckDB-WASM, Recharts
+            {' '}(CC0 1.0) • Built with React, DuckDB-WASM, Recharts
           </p>
         </footer>
       </div>
