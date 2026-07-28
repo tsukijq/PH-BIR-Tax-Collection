@@ -1,0 +1,16 @@
+{
+  "name": "kiro-ph-data-dashboard",
+  "scripts": {
+    "pipeline": "node step3_data_pipeline.js",
+    "dashboard": "serve dashboard -l 3000 --cors",
+    "start": "serve dashboard -l 3000 --cors"
+  },
+  "dependencies": {
+    "@duckdb/duckdb-wasm": "^1.33.1-dev57.0",
+    "chart.js": "^4.5.1",
+    "duckdb": "^1.4.4"
+  },
+  "devDependencies": {
+    "serve": "^14.2.6"
+  }
+}
