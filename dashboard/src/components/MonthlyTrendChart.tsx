@@ -1,5 +1,6 @@
 /**
- * MonthlyTrendChart — Line chart showing year-over-year monthly trends for a region.
+ * MonthlyTrendChart — Line chart showing year-over-year monthly trends.
+ * Clean axis labels, monospace tooltip values, clickable legend.
  */
 
 import {
@@ -24,7 +25,6 @@ interface Props {
 }
 
 export default function MonthlyTrendChart({ data, region }: Props) {
-  // Pivot data: { month: 'Jan', 2020: val, 2021: val, ... }
   const years = [...new Set(data.map((d) => Number(d.year)))].sort();
 
   const chartData = MONTH_LABELS.map((label, idx) => {
@@ -42,13 +42,37 @@ export default function MonthlyTrendChart({ data, region }: Props) {
     .replace(/Region\s+[\w-]+\s+\((.+)\)/, '$1');
 
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <LineChart data={chartData} margin={{ left: 20, right: 20 }}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="month" />
-        <YAxis tickFormatter={(v: number) => `₱${v.toLocaleString()}`} />
-        <Tooltip formatter={(value) => [`₱${Number(value).toLocaleString()} M`]} />
-        <Legend />
+    <ResponsiveContainer width="100%" height={320}>
+      <LineChart data={chartData} margin={{ left: 8, right: 8, top: 8, bottom: 4 }}>
+        <CartesianGrid stroke="var(--color-border-subtle)" strokeDasharray="2 4" vertical={false} />
+        <XAxis
+          dataKey="month"
+          tick={{ fontSize: 11, fill: 'var(--color-text-tertiary)' }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis
+          tickFormatter={(v: number) => `₱${v.toLocaleString()}`}
+          tick={{ fontSize: 11, fill: 'var(--color-text-tertiary)' }}
+          axisLine={false}
+          tickLine={false}
+          width={70}
+        />
+        <Tooltip
+          contentStyle={{
+            background: 'var(--color-surface-raised)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontFamily: 'var(--font-mono)',
+          }}
+          formatter={(value) => [`₱${Number(value).toLocaleString()} M`]}
+          labelStyle={{ color: 'var(--color-text-primary)', fontWeight: 500, fontFamily: 'var(--font-sans)' }}
+        />
+        <Legend
+          wrapperStyle={{ fontSize: '12px', paddingTop: '12px' }}
+          formatter={(value) => <span style={{ color: 'var(--color-text-secondary)' }}>{value}</span>}
+        />
         {years.map((year) => (
           <Line
             key={year}
@@ -57,6 +81,7 @@ export default function MonthlyTrendChart({ data, region }: Props) {
             stroke={YEAR_COLORS[year] || '#666'}
             strokeWidth={2}
             dot={false}
+            activeDot={{ r: 4, strokeWidth: 0 }}
             name={`${year} — ${shortRegion}`}
           />
         ))}

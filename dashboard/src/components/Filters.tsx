@@ -1,5 +1,6 @@
 /**
- * Filters — Year and Region selection controls.
+ * Filters — Persistent control bar with year toggles, region selector, and agg mode.
+ * Minimalist: no heavy borders, uses spacing and subtle backgrounds for structure.
  */
 
 interface Props {
@@ -27,36 +28,57 @@ export default function Filters({
     }
   };
 
+  const resetYears = () => onYearsChange(years.length ? [years[years.length - 1]] : []);
+
   return (
-    <div className="flex flex-wrap gap-4 items-center p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+    <div className="flex flex-wrap items-center gap-6 py-3 px-1">
       {/* Year toggles */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-slate-600">Years:</span>
+      <fieldset className="flex items-center gap-1.5" role="group" aria-label="Select years">
+        <legend className="sr-only">Years</legend>
+        <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)] mr-1">
+          Years
+        </span>
         {years.map((year) => (
           <button
             key={year}
             onClick={() => toggleYear(year)}
-            className={`px-3 py-1 text-sm rounded-md border transition-colors ${
+            aria-pressed={selectedYears.includes(year)}
+            className={`px-3 py-1.5 text-sm font-mono tabular-nums rounded-md transition-data focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
               selectedYears.includes(year)
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400'
+                ? 'bg-[var(--color-accent)] text-white shadow-sm shadow-blue-500/25'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-sunken)] border border-transparent hover:border-[var(--color-border)]'
             }`}
           >
             {year}
           </button>
         ))}
-      </div>
+        {selectedYears.length > 1 && (
+          <button
+            onClick={resetYears}
+            className="ml-1 text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-data"
+            aria-label="Reset to latest year"
+          >
+            Reset
+          </button>
+        )}
+      </fieldset>
+
+      {/* Divider */}
+      <div className="h-5 w-px bg-[var(--color-border)]" aria-hidden="true" />
 
       {/* Region select */}
       <div className="flex items-center gap-2">
-        <label htmlFor="region-select" className="text-sm font-semibold text-slate-600">
-          Region:
+        <label
+          htmlFor="region-select"
+          className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]"
+        >
+          Region
         </label>
         <select
           id="region-select"
           value={selectedRegion}
           onChange={(e) => onRegionChange(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-slate-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-2.5 py-1.5 text-sm bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded text-[var(--color-text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] transition-data"
         >
           {regions.map((r) => (
             <option key={r} value={r}>{r}</option>
@@ -64,30 +86,30 @@ export default function Filters({
         </select>
       </div>
 
+      {/* Divider */}
+      <div className="h-5 w-px bg-[var(--color-border)]" aria-hidden="true" />
+
       {/* Aggregation mode */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-slate-600">Mode:</span>
-        <button
-          onClick={() => onAggModeChange('total')}
-          className={`px-3 py-1 text-sm rounded-md border transition-colors ${
-            aggMode === 'total'
-              ? 'bg-green-600 text-white border-green-600'
-              : 'bg-white text-slate-600 border-slate-300 hover:border-green-400'
-          }`}
-        >
-          Total
-        </button>
-        <button
-          onClick={() => onAggModeChange('average')}
-          className={`px-3 py-1 text-sm rounded-md border transition-colors ${
-            aggMode === 'average'
-              ? 'bg-green-600 text-white border-green-600'
-              : 'bg-white text-slate-600 border-slate-300 hover:border-green-400'
-          }`}
-        >
-          Average
-        </button>
-      </div>
+      <fieldset className="flex items-center gap-1.5" role="group" aria-label="Aggregation mode">
+        <legend className="sr-only">Aggregation</legend>
+        <span className="text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)] mr-1">
+          Agg
+        </span>
+        {(['total', 'average'] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => onAggModeChange(mode)}
+            aria-pressed={aggMode === mode}
+            className={`px-3 py-1.5 text-sm capitalize rounded-md transition-data focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+              aggMode === mode
+                ? 'bg-[var(--color-text-primary)] text-[var(--color-surface)] shadow-sm'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-sunken)] border border-transparent hover:border-[var(--color-border)]'
+            }`}
+          >
+            {mode}
+          </button>
+        ))}
+      </fieldset>
     </div>
   );
 }
