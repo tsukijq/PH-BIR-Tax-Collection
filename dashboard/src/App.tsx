@@ -279,18 +279,21 @@ export default function App() {
         </section>
 
         {/* ── Footer ────────────────────────────────────────────────────────── */}
-        <footer className="mt-16 pt-6 border-t border-[var(--color-border)]">
+        <footer className="mt-16 pt-6 border-t border-[var(--color-border)] space-y-2">
           <p className="text-xs text-[var(--color-text-tertiary)]">
-            Source: Bureau of Internal Revenue (BIR), General Appropriations Act (GAA) — 2020–2024 •{' '}
+            Data current through 2024 — sourced from BIR /{' '}
             <a
               href="https://data.bettergov.ph/datasets/20"
               className="hover:text-[var(--color-text-secondary)] underline underline-offset-2 transition-data"
               target="_blank"
               rel="noopener noreferrer"
             >
-              data.bettergov.ph
+              BetterGov.PH Open Data Portal
             </a>
-            {' '}(CC0 1.0) • Built with React, DuckDB-WASM, Recharts
+            . Updated when the next year's collection data is published.
+          </p>
+          <p className="text-[10px] text-[var(--color-text-tertiary)]/60">
+            As of July 2026 • Built with React, DuckDB-WASM, Recharts
           </p>
         </footer>
       </div>
